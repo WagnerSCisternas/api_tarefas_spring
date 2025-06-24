@@ -35,7 +35,8 @@ WORKDIR /app
 # **IMPORTANTE**: Verifique o nome exato do seu arquivo .jar na pasta 'target/'
 # do seu projeto local (após você rodar 'mvn clean install -DskipTests').
 # Renomeamos para 'app.jar' dentro do contêiner para simplicidade.
-COPY --from=build /app/target/api-tarefas-0.0.1-SNAPSHOT.jar app.jar
+# COPY --from=build /app/target/api-tarefas-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/Tarefas-0.0.1-SNAPSHOT.jar app.jar
 
 
 # Expõe a porta que a aplicação Spring Boot usará (padrão 8080).
