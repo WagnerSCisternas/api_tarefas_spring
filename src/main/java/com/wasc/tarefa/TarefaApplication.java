@@ -20,7 +20,7 @@ public class TarefaApplication {
     public CommandLineRunner createDefaultUser(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
         return args -> {
             // Define os dados do usuário padrão
-            String defaultUsername = "admin";
+            String defaultUsername = "adminWasc";
             String defaultPassword = "Senha@Forte123";
 
             // Verifica se o usuário já existe no banco de dados
