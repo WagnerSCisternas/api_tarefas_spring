@@ -1,6 +1,5 @@
 package com.wasc.tarefa.service;
 
-
 import com.wasc.tarefa.model.Usuario;
 import com.wasc.tarefa.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,7 @@ import java.util.Optional;
 public class UsuarioService {
 
     @Autowired
-    private UsuarioRepository usuarioRepository;	
+    private UsuarioRepository usuarioRepository;
 
     public List<Usuario> findAll() {
         return usuarioRepository.findAll();
@@ -26,7 +25,7 @@ public class UsuarioService {
     public Optional<Usuario> findByNome(String nome) {
         return usuarioRepository.findByNome(nome);
     }
-    
+
     public Usuario save(Usuario usuario) {
         return usuarioRepository.save(usuario);
     }
@@ -36,12 +35,12 @@ public class UsuarioService {
         if (optionalUsuario.isPresent()) {
             Usuario usuario = optionalUsuario.get();
             usuario.setNome(usuarioDetails.getNome());
+            // A senha não é atualizada aqui para evitar sobrescrever a criptografada
             usuario.setDataNascimento(usuarioDetails.getDataNascimento());
             usuario.setAtivo(usuarioDetails.isAtivo());
             return usuarioRepository.save(usuario);
         } else {
-            // Ou lançar uma exceção, ou retornar null, dependendo da sua estratégia de tratamento de erro
-            return null;
+            return null; // Ou lançar uma exceção de "não encontrado"
         }
     }
 

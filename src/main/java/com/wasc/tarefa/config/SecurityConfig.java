@@ -1,5 +1,6 @@
 package com.wasc.tarefa.config;
 
+
 import com.wasc.tarefa.security.JwtRequestFilter;
 import com.wasc.tarefa.service.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +17,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.servlet.config.annotation.CorsRegistry; // Importar CorsRegistry
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer; // Importar WebMvcConfigurer
+
 
 @Configuration
-@EnableWebSecurity // Habilita a segurança web
-@EnableMethodSecurity(prePostEnabled = true) // Permite segurança baseada em anotações nos métodos
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -28,41 +32,41 @@ public class SecurityConfig {
     @Autowired
     private JwtRequestFilter jwtRequestFilter;
 
-    /// Codificador de senha: BCrypt é o padrão e recomendado
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // Provedor de autenticação que usa o UserDetailsService e o PasswordEncoder
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());	
+        authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
-    }	
+    }
 
-    // Gerenciador de autenticação (usado pelo AuthController)
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
-    // Cadeia de filtros de segurança HTTP
+    // Configuração da cadeia de filtros de segurança HTTP
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable()) // Desabilita CSRF para APIs REST
-            .cors(cors -> {}) // Mantém CORS configurado (já ativado nos controllers)
+            // CORS será tratado pelo WebMvcConfigurer para toda a aplicação
             .authorizeHttpRequests(auth -> auth
-            //	.requestMatchers("/api/auth/register").authenticated()
-            		
-            	.requestMatchers("/api/auth/**").permitAll() // Permite acesso público ao endpoint de autenticação
-                
-                .requestMatchers("/h2-console/**").permitAll() // Permite acesso público ao H2 console (APENAS EM DEV!)
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll() // Para o Swagger UI e API Docs
-                .anyRequest().authenticated() // Todas as outras requisições exigem autenticação
+                // Endpoints públicos
+                .requestMatchers("/login", "/register", "/logout").permitAll() // Web frontend pages
+                .requestMatchers("/style.css").permitAll() // CSS file for frontend
+                .requestMatchers("/api/auth/login").permitAll() // API login endpoint
+                .requestMatchers("/h2-console/**").permitAll() // H2 console para DEV LOCAL
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll() // Swagger UI é público para visualização
+
+                // Endpoints protegidos
+                .requestMatchers("/api/auth/register").authenticated() // API register endpoint (requer token)
+                .anyRequest().authenticated() // Todas as outras requisições (incluindo /tasks e /api/**) exigem autenticação
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Define a política de sessão como STATELESS (sem estado)
@@ -75,5 +79,28 @@ public class SecurityConfig {
         http.authenticationProvider(authenticationProvider());
 
         return http.build();
+    }
+
+    // Configuração CORS Global para a Aplicação Monolítica
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                // Se a aplicação é monolítica e o frontend está no mesmo domínio/porta,
+                // geralmente não precisa de CORS entre eles.
+                // No entanto, se houver chamadas AJAX diretas do navegador para a API,
+                // ou se o deploy em nuvem usar subdomínios diferentes para API vs. Web Controller,
+                // esta configuração será útil.
+                // Para simplificar, permitindo de qualquer origem para qualquer path da API.
+                // EM PRODUÇÃO, RESTRINGIR 'allowedOrigins' para o domínio REAL DO SEU FRONTEND.
+                registry.addMapping("/api/**") // Aplica CORS apenas para endpoints da API
+                        .allowedOrigins("*") // Permite de qualquer origem
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(false); // Cookies não serão enviados (pois é JWT)
+                // Para os endpoints web (/login, /tasks), CORS geralmente não se aplica.
+            }
+        };
     }
 }

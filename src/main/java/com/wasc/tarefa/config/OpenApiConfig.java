@@ -14,15 +14,15 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("API de Gerenciamento de Tarefas") // Título da sua API
-                        .version("1.0.0") // Versão da sua API
-                        .description("Esta API permite o gerenciamento de usuários e suas tarefas.") // Descrição
-                        .termsOfService("http://swagger.io/terms/") // Opcional: Termos de serviço
-                        .contact(new Contact() // Opcional: Informações de contato
-                                .name("Wagner")
-                                .url("http://wasc.com")
-                                .email("devwasc@gmail.com"))
-                        .license(new License() // Opcional: Informações de licença
+                        .title("API e Frontend Integrado de Tarefas")
+                        .version("1.0.0")
+                        .description("Esta aplicação integra a API de gerenciamento de usuários e tarefas com um frontend web.")
+                        .termsOfService("http://swagger.io/terms/")
+                        .contact(new Contact()
+                                .name("Seu Nome ou Equipe")
+                                .url("http://seusite.com")
+                                .email("seu.email@example.com"))
+                        .license(new License()
                                 .name("Apache 2.0")
                                 .url("http://springdoc.org")));
     }

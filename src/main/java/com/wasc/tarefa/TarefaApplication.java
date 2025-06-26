@@ -1,5 +1,7 @@
 package com.wasc.tarefa;
 
+import java.time.LocalDate;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,25 +18,21 @@ public class TarefaApplication {
 		SpringApplication.run(TarefaApplication.class, args);
 	}
 	
-	@Bean	
+	@Bean
     public CommandLineRunner createDefaultUser(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // Define os dados do usuário padrão
             String defaultUsername = "adminWasc";
             String defaultPassword = "Senha@Forte123";
 
             // Verifica se o usuário já existe no banco de dados
             if (usuarioRepository.findByNome(defaultUsername).isEmpty()) {
-                // Cria uma nova instância de Usuario	
                 Usuario adminUser = new Usuario();
                 adminUser.setNome(defaultUsername);
-                adminUser.setSenha(passwordEncoder.encode(defaultPassword)); // Criptografa a senha
-                adminUser.setDataNascimento(java.time.LocalDate.of(1990, 1, 1)); // Data de nascimento padrão
-                adminUser.setAtivo(true); // Define o usuário como ativo
+                adminUser.setSenha(passwordEncoder.encode(defaultPassword));
+                adminUser.setDataNascimento(LocalDate.of(1990, 1, 1)); // Usar LocalDate
+                adminUser.setAtivo(true);
 
-                // Salva o usuário no banco de dados
                 usuarioRepository.save(adminUser);
-
                 System.out.println("Usuário padrão '" + defaultUsername + "' criado com sucesso!");
             } else {
                 System.out.println("Usuário padrão '" + defaultUsername + "' já existe.");
