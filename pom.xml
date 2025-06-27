@@ -5,33 +5,34 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.7</version> <!-- Usando a versão mais recente que você estava usando na API -->
+        <version>3.5.0</version> <!-- Versão estável recomendada -->
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     
-	<groupId>com.wasc</groupId>
-	<artifactId>tarefa</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<packaging>jar</packaging>
-	<name>tarefa</name>
-	<description>Demo project for Spring Boot</description>
-	<url/>
-	
-	<properties>
+    <groupId>com.wasc</groupId>
+    <artifactId>tarefa</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>tarefa</name>
+    <description>Projeto Integrado de API e Frontend de Tarefas</description>
+
+    <properties>
         <java.version>17</java.version>
-        <jjwt.version>0.11.5</jjwt.version> <!-- Versão JWT -->
-        <springdoc.version>2.5.0</springdoc.version> <!-- Versão SpringDoc -->
+        <jjwt.version>0.11.5</jjwt.version>
+        <springdoc.version>2.5.0</springdoc.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters essenciais para API e Web -->
+        <!-- Spring Boot Starters essenciais -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId> <!-- Para o frontend web -->
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -41,18 +42,28 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-      
+
+        <!-- Driver de Banco de Dados -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-         
+        <!-- H2 para testes locais (opcional, remova se não for usar) -->
+        <!--
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        -->
+
+        <!-- Bean Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency> 
-            
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -107,18 +118,61 @@
 
     <build>
         <plugins>
-        	<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</path>
-					</annotationProcessorPaths>
-				</configuration>
-			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version> <!-- MUDANÇA: Versão explícita e mais recente -->
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            
+            <!-- Configuração Robusta para maven-resources-plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version> <!-- A versão que estava no erro, mas agora com configuração completa -->
+                <executions>
+                    <execution>
+                        <id>default-resources</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>resources</goal>
+                        </goals>
+                        <configuration>
+                            <encoding>${project.build.sourceEncoding}</encoding>
+                            <useDefaultDelimiters>true</useDefaultDelimiters> <!-- Garante que delimiters padrão sejam usados -->
+                            <delimiters> <!-- Especifica delimitadores se houver filtragem -->
+                                <delimiter>${*}</delimiter> <!-- Para ${VAR} -->
+                                <delimiter>@</delimiter>   <!-- Para @VAR@ -->
+                            </delimiters>
+                            <nonFilteredFileExtensions> <!-- Extensões de arquivos que NÃO DEVEM ser filtrados -->
+                                <nonFilteredFileExtension>xlsx</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>xls</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>csv</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>pdf</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>jar</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>zip</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>jpg</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>jpeg</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>png</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>gif</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>bmp</nonFilteredFileExtension>
+                                <nonFilteredFileExtension>webp</nonFilteredFileExtension>
+                            </nonFilteredFileExtensions>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
