@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.0-SNAPSHOT</version> <!-- Usando a versão mais recente que você estava usando na API -->
+        <version>3.4.7</version> <!-- Usando a versão mais recente que você estava usando na API -->
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     
