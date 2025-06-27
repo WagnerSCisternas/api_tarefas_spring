@@ -12,7 +12,6 @@ WORKDIR /app
 # O nome do JAR é <artifactId>-<version>.jar
 COPY --from=build /app/target/tarefa-0.0.1-SNAPSHOT.jar app.jar
 
-
-EXPOSE 8080 # <--- CORRIGIDO AQUI: SEM NENHUM CARACTERE DE COMENTÁRIO '#' APÓS O NÚMERO DA PORTA
+EXPOSE 8080 
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
