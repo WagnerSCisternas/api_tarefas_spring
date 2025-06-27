@@ -2,76 +2,60 @@ package com.wasc.tarefa.controller.web;
 
 import com.wasc.tarefa.model.Usuario;
 import com.wasc.tarefa.service.UsuarioService; // Chamada direta ao serviço
-import com.wasc.tarefa.security.JwtUtil; // Para gerar o JWT
+import com.wasc.tarefa.security.JwtUtil; // Para gerar o JWT (se necessário para outros fins)
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager; // Para autenticar
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder; // Para criptografar senha de registro
+import org.springframework.security.crypto.password.PasswordEncoder; // Mantenha para o registro
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestParam; // Mantenha se ainda usar em outros métodos
+
 
 @Controller
 public class AuthController {
 
-    @Autowired
-    private AuthenticationManager authenticationManager; // Para autenticar o usuário
+    // A injeção de AuthenticationManager NÃO é mais necessária aqui, pois o Spring Security lida com o formLogin()
+    // @Autowired
+    // private AuthenticationManager authenticationManager; 
 
     @Autowired
-    private UsuarioService usuarioService; // Para salvar novos usuários e buscar detalhes
+    private UsuarioService usuarioService;
 
     @Autowired
-    private PasswordEncoder passwordEncoder; // Para criptografar senhas
+    private PasswordEncoder passwordEncoder; // Mantenha para o registro de usuário
 
     @Autowired
-    private JwtUtil jwtUtil; // Para gerar o JWT após autenticação
+    private JwtUtil jwtUtil; // Mantenha, caso precise gerar JWT para API calls via servidor após o login web
+
 
     // Exibe a página de login
     @GetMapping("/login")
-    public String showLoginForm(Model model) {
-        // Limpa a mensagem de erro/sucesso após redirecionamento
-        model.addAttribute("error", null);
-        model.addAttribute("message", null);
+    public String showLoginForm(Model model, @RequestParam(value = "error", required = false) String error,
+                                @RequestParam(value = "logout", required = false) String logout) {
+        // Estas mensagens são passadas por Spring Security em caso de falha ou sucesso de logout
+        if (error != null) {
+            model.addAttribute("error", "Nome de usuário ou senha inválidos.");
+        }
+        if (logout != null) {
+            model.addAttribute("message", "Você foi desconectado com sucesso.");
+        }
         return "login";
     }
 
-    // Processa o formulário de login
+    // REMOVIDO: O método @PostMapping("/login") foi REMOVIDO.
+    // O Spring Security agora lida com o POST para /login automaticamente via formLogin().
+    /*
     @PostMapping("/login")
     public String login(@RequestParam String username, @RequestParam String password, HttpSession session, Model model) {
-        try {
-            // Autentica o usuário usando o AuthenticationManager do Spring Security
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password)
-            );
-
-            // Se a autenticação foi bem-sucedida, carrega os detalhes do usuário para gerar o JWT
-            UserDetails userDetails = usuarioService.findByNome(username)
-                                                 // CORREÇÃO AQUI: u.getAtivo() mudado para u.isAtivo()
-                                                 .map(u -> new org.springframework.security.core.userdetails.User(u.getNome(), u.getSenha(), u.isAtivo() ? java.util.Collections.emptyList() : java.util.Collections.emptyList())) // Simples
-                                                 .orElseThrow(() -> new BadCredentialsException("Usuário não encontrado após autenticação."));
-
-
-            final String jwt = jwtUtil.generateToken(userDetails); // Gera o JWT
-
-            session.setAttribute("jwtToken", jwt); // Armazena o token na sessão HTTP do servidor
-            session.setAttribute("loggedInUser", username); // Armazena o username para exibição
-
-            model.addAttribute("message", "Login realizado com sucesso!");
-            return "redirect:/tasks"; // Redireciona para a página de tarefas
-        } catch (BadCredentialsException e) {
-            model.addAttribute("error", "Nome de usuário ou senha inválidos.");
-            return "login";
-        } catch (Exception e) {
-            model.addAttribute("error", "Erro ao tentar login: " + e.getMessage());
-            return "login";
-        }
+        // Este código não é mais necessário aqui, pois o Spring Security o gerencia internamente.
+        // O defaultSuccessUrl() e failureUrl() do formLogin() já cuidarão do redirecionamento.
     }
+    */
+
 
     // Exibe a página de registro
     @GetMapping("/register")
@@ -92,17 +76,17 @@ public class AuthController {
             usuario.setAtivo(true); // Define como ativo por padrão
             usuarioService.save(usuario);
             model.addAttribute("message", "Usuário registrado com sucesso! Faça login.");
-            return "login";
+            return "login"; // Redireciona para a página de login
         } catch (Exception e) {
             model.addAttribute("error", "Erro ao registrar usuário: " + e.getMessage());
             return "register";
         }
     }
 
-    // Logout
+    // Logout (Continua o mesmo, mas o Spring Security o intercepta)
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate(); // Invalida a sessão HTTP
-        return "redirect:/login";
+        return "redirect:/login"; // Será substituído pelo logoutSuccessUrl do Spring Security
     }
 }

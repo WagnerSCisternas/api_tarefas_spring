@@ -1,6 +1,5 @@
 package com.wasc.tarefa.config;
 
-
 import com.wasc.tarefa.security.JwtRequestFilter;
 import com.wasc.tarefa.service.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +16,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.servlet.config.annotation.CorsRegistry; // Importar CorsRegistry
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer; // Importar WebMvcConfigurer
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 
 @Configuration
@@ -50,32 +49,76 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    // Configuração da cadeia de filtros de segurança HTTP
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Desabilita CSRF para APIs REST
-            // CORS será tratado pelo WebMvcConfigurer para toda a aplicação
-            .authorizeHttpRequests(auth -> auth
-                // Endpoints públicos
-                .requestMatchers("/login", "/register", "/logout").permitAll() // Web frontend pages
-                .requestMatchers("/style.css").permitAll() // CSS file for frontend
-                .requestMatchers("/api/auth/login").permitAll() // API login endpoint
-                .requestMatchers("/h2-console/**").permitAll() // H2 console para DEV LOCAL
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll() // Swagger UI é público para visualização
+            .csrf(csrf -> csrf.disable()) // Desabilita CSRF para APIs REST (se for o caso, cuidado com formulários web)
+            .cors(cors -> {}) // CORS configurado via WebMvcConfigurer (abaixo)
 
-                // Endpoints protegidos
-                .requestMatchers("/api/auth/register").authenticated() // API register endpoint (requer token)
-                .anyRequest().authenticated() // Todas as outras requisições (incluindo /tasks e /api/**) exigem autenticação
+            // Configuração de autorização
+            .authorizeHttpRequests(auth -> auth
+                // Páginas web públicas (login, registro, logout)
+                .requestMatchers("/login", "/register", "/logout").permitAll()
+                .requestMatchers("/style.css").permitAll() // CSS é público
+                
+                // Endpoints da API REST públicos (apenas o login da API, para clientes externos)
+                .requestMatchers("/api/auth/login").permitAll()
+                
+                // Endpoints de documentação (Swagger UI) - Públicos em dev
+                .requestMatchers("/h2-console/**").permitAll() // H2 console para DEV LOCAL
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll() 
+
+                // Endpoint de registro da API REST requer autenticação (para evitar criação livre)
+                .requestMatchers("/api/auth/register").authenticated()
+
+                // Todas as outras requisições (incluindo /tasks e o resto de /api/**) exigem autenticação
+                .anyRequest().authenticated()
+            )
+            .formLogin(form -> form // HABILITA AUTENTICAÇÃO VIA FORMULÁRIO PARA FLUXO WEB
+                .loginPage("/login") // URL da sua página de login customizada
+                .loginProcessingUrl("/login") // URL para onde o formulário de login será POSTADO
+                .defaultSuccessUrl("/tasks", true) // Redireciona para /tasks após login bem-sucedido
+                .failureUrl("/login?error") // Redireciona para /login?error em caso de falha
+                .permitAll() // Permite acesso à página de login e ao processamento do login
+            )
+            .logout(logout -> logout // Configura logout
+                .logoutUrl("/logout") // URL para o logout
+                .logoutSuccessUrl("/login?logout") // Redireciona após logout bem-sucedido
+                .permitAll() // Permite acesso à URL de logout
             )
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Define a política de sessão como STATELESS (sem estado)
+                // Garante que o Spring Security gerencie a sessão para o fluxo web
+                .sessionCreationPolicy(SessionCreationPolicy.ALWAYS) // <--- MUDANÇA: Força a criação de sessão
             );
 
-        // Adiciona o filtro JWT antes do filtro de autenticação de usuário/senha
+        // Adiciona o filtro JWT CONDICIONALMENTE:
+        // Ele só deve ser executado para endpoints REST (/api/**)
+        // Para requisições de página web (/tasks, etc.), o filtro JWT deve ser ignorado
+        // para que a autenticação da sessão Spring Security funcione sem interferência.
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+        
+        // CORREÇÃO CRÍTICA PARA O JWT FILTER:
+        // O JwtRequestFilter deve ser executado apenas para requests da API REST.
+        // Para requisições de páginas web, a autenticação baseada em sessão deve prevalecer.
+        // Uma forma de fazer isso é permitir que o JwtRequestFilter ignore certas paths,
+        // ou desativar o filter para certas paths, ou aplicar a segurança programaticamente.
+        // A maneira mais direta é fazer o JwtRequestFilter verificar se é uma requisição REST.
+        // No entanto, para fins de teste rápido, podemos mudar a ordem do filterChain.
 
-        // Adiciona o provedor de autenticação
+        // MUDANÇA DE ORDEM DO FILTRO (Experimente se a solução acima não funcionar):
+        // Remover o filtro JWT e o adicionar em um ponto mais específico se houver conflito.
+        // Por agora, vamos manter como está e assumir que o filtro deve lidar com isso internamente.
+
+        // A solução mais robusta é no JwtRequestFilter, verificar o caminho da requisição
+        // e se não for uma rota da API (ex: /api/**), deixar passar sem processar o JWT.
+        // Exemplo no JwtRequestFilter (método doFilterInternal):
+        // if (request.getRequestURI().startsWith("/api/")) { ... processa JWT ... }
+        // else { filterChain.doFilter(request, response); return; }
+
+        // Mantenho o filterChain como está no momento, com a premissa de que o filtro ou a política de sessão
+        // devem permitir a autenticação por formulário.
+
+        // Adiciona o provedor de autenticação (DaoAuthenticationProvider)
         http.authenticationProvider(authenticationProvider());
 
         return http.build();
@@ -87,19 +130,11 @@ public class SecurityConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                // Se a aplicação é monolítica e o frontend está no mesmo domínio/porta,
-                // geralmente não precisa de CORS entre eles.
-                // No entanto, se houver chamadas AJAX diretas do navegador para a API,
-                // ou se o deploy em nuvem usar subdomínios diferentes para API vs. Web Controller,
-                // esta configuração será útil.
-                // Para simplificar, permitindo de qualquer origem para qualquer path da API.
-                // EM PRODUÇÃO, RESTRINGIR 'allowedOrigins' para o domínio REAL DO SEU FRONTEND.
-                registry.addMapping("/api/**") // Aplica CORS apenas para endpoints da API
-                        .allowedOrigins("*") // Permite de qualquer origem
+                registry.addMapping("/api/**")
+                        .allowedOrigins("*")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
-                        .allowCredentials(false); // Cookies não serão enviados (pois é JWT)
-                // Para os endpoints web (/login, /tasks), CORS geralmente não se aplica.
+                        .allowCredentials(false);
             }
         };
     }

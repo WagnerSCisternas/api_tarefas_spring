@@ -28,38 +28,43 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // CORREÇÃO CRÍTICA: IGNORE O FILTRO JWT PARA ROTAS WEB PADRÃO (HTML PAGES).
+        // Ele só deve processar JWT para requisições de API REST.
+        // Rotas como /login, /tasks, /register são controladas pela sessão do Spring Security.
+        if (!request.getRequestURI().startsWith("/api/")) { // <--- ESTA LINHA É CRUCIAL!
+            filterChain.doFilter(request, response);
+            return; // Sai do filtro JWT para não interferir
+        }
+
+        // Se a requisição é para /api/, então tenta processar o JWT
         final String authorizationHeader = request.getHeader("Authorization");
 
         String username = null;
         String jwt = null;
 
-        // Verifica se o cabeçalho Authorization existe e começa com "Bearer "
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7); // Extrai o token após "Bearer "
+            jwt = authorizationHeader.substring(7);
             try {
-                username = jwtUtil.extractUsername(jwt); // Extrai o username do token
+                username = jwtUtil.extractUsername(jwt);
             } catch (Exception e) {
-                // Logar a exceção, por exemplo: token expirado, inválido, etc.
                 System.out.println("Erro ao extrair username ou token inválido: " + e.getMessage());
+                // Se o token for inválido/expirado, não autenticar, mas não bloquear a cadeia para 401/403 ser gerado depois
+                // SecurityContextHolder.clearContext(); // Não limpe o contexto aqui se for para cair em outros filtros
             }
         }
 
-        // Se o username foi extraído e não há autenticação no contexto de segurança atual
+        // Se o username foi extraído e não há autenticação no contexto de segurança atual (apenas para este filtro)
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
-            // Valida o token
             if (jwtUtil.validateToken(jwt, userDetails)) {
-                // Cria um objeto de autenticação
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 usernamePasswordAuthenticationToken
                         .setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                // Define a autenticação no contexto de segurança do Spring Security
                 SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
             }
         }
-        filterChain.doFilter(request, response); // Continua a cadeia de filtros
+        filterChain.doFilter(request, response);
     }
 }
