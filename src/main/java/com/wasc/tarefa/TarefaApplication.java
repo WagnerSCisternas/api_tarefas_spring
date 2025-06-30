@@ -23,12 +23,14 @@ public class TarefaApplication {
         return args -> {
             String defaultUsername = "adminWasc";
             String defaultPassword = "Senha@Forte123";
+            String defaultEmail = "devwasc@gmail.com";
 
             // Verifica se o usuário já existe no banco de dados
             if (usuarioRepository.findByNome(defaultUsername).isEmpty()) {
                 Usuario adminUser = new Usuario();
                 adminUser.setNome(defaultUsername);
                 adminUser.setSenha(passwordEncoder.encode(defaultPassword));
+                adminUser.setEmail(defaultEmail);
                 adminUser.setDataNascimento(LocalDate.of(1990, 1, 1)); // Usar LocalDate
                 adminUser.setAtivo(true);
 
