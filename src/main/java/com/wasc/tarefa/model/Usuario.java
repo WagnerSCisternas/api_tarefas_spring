@@ -28,9 +28,13 @@ public class Usuario {
     @Column(nullable = false)
     private LocalDate dataNascimento;
 
+    @Column(nullable = false, unique = true) // NOVO CAMPO: Email (obrigatório e único)
+    private String email; 
+    
     private boolean ativo;
 
     @JsonIgnore // Essencial para evitar recursão infinita na serialização JSON
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Tarefa> tarefas;
+    
 }

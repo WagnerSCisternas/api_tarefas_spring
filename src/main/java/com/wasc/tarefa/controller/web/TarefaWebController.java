@@ -38,30 +38,49 @@ public class TarefaWebController {
     public String listTasks(Model model, HttpSession session) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        // If user is not authenticated or is anonymous, redirect to login
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
             System.out.println("DEBUG: Usuário NÃO autenticado ou sessão nula (verificado pelo SecurityContextHolder). Redirecionando.");
-            session.invalidate();
+            session.invalidate(); // Invalidate session to ensure clean state
             return "redirect:/login";
         }
         
-        String username = authentication.getName();
-        System.out.println("DEBUG: Usuário autenticado: " + username);
+        // Get the username from the SecurityContext
+        String username = authentication.getName(); 
+        
+        // Find the user by username to get their ID
+        Optional<Usuario> loggedInUserOptional = usuarioService.findByNome(username);
+        if (loggedInUserOptional.isEmpty()) {
+            System.out.println("DEBUG: Usuário autenticado não encontrado no banco de dados. Redirecionando para login.");
+            session.invalidate();
+            model.addAttribute("error", "Erro interno: usuário logado não encontrado.");
+            return "redirect:/login";
+        }
+        Long loggedInUserId = loggedInUserOptional.get().getId();
 
-        // Remover o try-catch TEMPORARIAMENTE para ver a exceção real
-        List<Tarefa> tarefas = tarefaService.findAll(); 
-        List<Usuario> usuarios = usuarioService.findAll(); 
+        try {
+            // Load tasks ONLY for the currently logged-in user
+            List<Tarefa> tarefas = tarefaService.findByUsuario(loggedInUserId); 
+            // Load all users for the dropdown (user can assign tasks to others if they have permission)
+            List<Usuario> usuarios = usuarioService.findAll(); 
 
-        model.addAttribute("tarefas", tarefas);
-        model.addAttribute("usuarios", usuarios);
-        model.addAttribute("tarefa", new Tarefa()); 
-        model.addAttribute("loggedInUser", username); 
+            model.addAttribute("tarefas", tarefas);
+            model.addAttribute("usuarios", usuarios);
+            model.addAttribute("tarefa", new Tarefa()); // For the new task form
+            model.addAttribute("loggedInUser", username); // Display logged-in username
 
-        System.out.println("DEBUG: Tarefas no modelo: " + (tarefas != null ? tarefas.size() : "null"));
-        System.out.println("DEBUG: Usuários no modelo: " + (usuarios != null ? usuarios.size() : "null"));
-        System.out.println("DEBUG: Tarefa no modelo (para formulário): " + (model.getAttribute("tarefa") != null ? "presente" : "null"));
-        System.out.println("DEBUG: loggedInUser no modelo: " + model.getAttribute("loggedInUser"));
+            System.out.println("DEBUG: Tarefas do usuário " + username + " no modelo: " + (tarefas != null ? tarefas.size() : "null"));
+            System.out.println("DEBUG: Todos os usuários no modelo: " + (usuarios != null ? usuarios.size() : "null"));
+            System.out.println("DEBUG: Tarefa no modelo (para formulário): " + (model.getAttribute("tarefa") != null ? "presente" : "null"));
+            System.out.println("DEBUG: loggedInUser no modelo: " + model.getAttribute("loggedInUser"));
 
-        return "tasks";
+            return "tasks";
+        } catch (Exception e) {
+            e.printStackTrace(); 
+            session.invalidate(); 
+            model.addAttribute("error", "Erro ao carregar dados ou sessão expirada. Faça login novamente.");
+            return "login"; 
+        }
     }
 
     @PostMapping("/tasks")

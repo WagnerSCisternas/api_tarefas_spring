@@ -72,6 +72,11 @@ public class AuthController {
                 model.addAttribute("error", "Nome de usuário já existe.");
                 return "register";
             }
+             
+            if (usuario.getEmail() != null && usuarioService.findByEmail(usuario.getEmail()).isPresent()) {
+                model.addAttribute("error", "E-mail já está em uso.");
+                return "register";
+            }
             usuario.setSenha(passwordEncoder.encode(usuario.getSenha())); // Criptografa a senha
             usuario.setAtivo(true); // Define como ativo por padrão
             usuarioService.save(usuario);

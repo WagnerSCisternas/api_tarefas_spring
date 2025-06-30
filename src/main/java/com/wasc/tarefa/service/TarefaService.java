@@ -27,6 +27,15 @@ public class TarefaService {
         return tarefaRepository.findById(id);
     }
 
+    public List<Tarefa> findByUsuario(Long usuarioId) {
+        Optional<Usuario> usuario = usuarioRepository.findById(usuarioId);
+        if (usuario.isPresent()) {
+            return tarefaRepository.findByUsuario(usuario.get());
+        } else {
+            throw new RuntimeException("Usuário não encontrado com o ID: " + usuarioId);
+        }
+    }
+    
     public Tarefa save(Tarefa tarefa) {
         // Garante que o usuário associado à tarefa exista
         Optional<Usuario> usuario = usuarioRepository.findById(tarefa.getUsuario().getId());

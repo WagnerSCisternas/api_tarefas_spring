@@ -36,6 +36,18 @@ public class TarefaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/usuario/{userId}")
+    public ResponseEntity<List<Tarefa>> getTarefasByUsuario(@PathVariable Long userId) {
+        try {
+            List<Tarefa> tarefas = tarefaService.findByUsuario(userId);
+            return ResponseEntity.ok(tarefas);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build(); // Usuário não encontrado
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
     @PostMapping
     public ResponseEntity<Tarefa> createTarefa(@RequestBody Tarefa tarefa) {
         try {
